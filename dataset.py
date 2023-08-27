@@ -192,20 +192,9 @@ class MergedDataset(Dataset):
         self.transform = transform
 
     def __len__(self):
-        """Return the total length of the merged dataset."""
         return len(self.labelled_dataset) + len(self.unlabelled_dataset)
 
-    def __getitem__(self, index):
-        """
-        Fetch an item from the merged dataset based on the index.
-
-        Returns:
-        - img (Tensor): Image tensor.
-        - label (int): Label of the sample.
-        - uq_idx (int): Unique index of the sample.
-        - labeled_or_not (numpy.ndarray): Binary flag indicating if sample is labelled (1) or not (0).
-        """
-        
+    def __getitem__(self, index):    
         # Determine if the index falls within the labelled dataset
         if index < len(self.labelled_dataset):
             img, label, _ = self.labelled_dataset[index]
@@ -225,28 +214,17 @@ class MergedDataset(Dataset):
 class TransformedDataset(Dataset):
     def __init__(self, dataset: Dataset, transform: callable = None):
         """
-        Initialize the TransformedDataset with a dataset and an optional transform.
+        Initialize the TransformedDataset with a dataset and an transform.
         
         Args:
             dataset (Dataset): The original dataset.
-            transform (callable, optional): A function/transform that takes an image
+            transform (callable): A function/transform that takes an image
                 and returns a transformed version.
         """
         self.dataset = dataset
         self.transform = transform
 
     def __getitem__(self, idx: int):
-        """
-        Fetch an item from the dataset and apply the transform if provided.
-
-        Args:
-            idx (int): Index of the item.
-
-        Returns:
-            img (Tensor): Transformed or original image tensor.
-            label (int): Label of the sample.
-            uq_idx (int): Unique index of the sample.
-        """
         img, label, uq_idx = self.dataset[idx]
 
         if self.transform:
@@ -255,10 +233,4 @@ class TransformedDataset(Dataset):
         return img, label, uq_idx
 
     def __len__(self) -> int:
-        """
-        Returns the length of the dataset.
-
-        Returns:
-            int: Length of the dataset.
-        """
         return len(self.dataset)

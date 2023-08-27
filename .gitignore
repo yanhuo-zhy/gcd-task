@@ -1,5 +1,7 @@
 data/CUB_200_2011/
 data/CUB_200_2011.tgz
 pretrained/
-experiment/
+experiment/*
+!experiment/08-26-22-57-Experiment-2/
 analysis/
+replication_task_zhy.tar.gz

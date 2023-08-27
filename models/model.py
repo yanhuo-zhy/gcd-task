@@ -43,7 +43,7 @@ class GCDModel(nn.Module):
     
     def freeze(self, num_layers_to_freeze=None):
         if num_layers_to_freeze is None:
-            # If not provided, we will not unfreeze any block
+            # If not provided, freeze all layers
             num_layers_to_freeze = float('inf')
 
         # Initially freeze all parameters
@@ -53,7 +53,7 @@ class GCDModel(nn.Module):
         # Go through parameters and decide which ones to unfreeze
         for name, param in self.backbone.named_parameters():
             if 'block' in name:
-                block_num = int(name.split('.')[1])  # Assuming the format is something like 'block.1.xxx'
+                block_num = int(name.split('.')[1])  
                 if block_num >= num_layers_to_freeze:
                     param.requires_grad = True
                     print(f'Finetuning layer {name}')
@@ -67,7 +67,7 @@ class GCDModel(nn.Module):
         # Load model state
         self.load_state_dict(checkpoint['model'])
         
-        # Return optimizer state and epoch (or any other saved state)
+        # Return optimizer state and epoch 
         optimizer_state = checkpoint['optimizer']
         epoch = checkpoint['epoch']
 
@@ -89,7 +89,7 @@ class MLPHead(nn.Module):
         self.relu2 = nn.GELU()
         self.fc3 = nn.Linear(hidden_features, out_features)
 
-        # 初始化权重
+        # Initialize weights
         self.apply(self._init_weights)
 
 

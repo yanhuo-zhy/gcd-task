@@ -1,9 +1,8 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import numpy as np
-import math
 
+##------------------------------------------------Using Loss----------------------------------------------##
 def clustering_loss(student_logits: torch.Tensor, 
                    teacher_logits: torch.Tensor, 
                    weight: float, 
@@ -16,8 +15,8 @@ def clustering_loss(student_logits: torch.Tensor,
         student_output (torch.Tensor): Student model's output.
         teacher_output (torch.Tensor): Teacher model's output.
         weight (float): Weight for the maximum entropy component.
-        teacher_temp (float): Temperature for teacher softmax.
-        student_temp (float): Temperature for student softmax/log-softmax.
+        teacher_temp (float): Temperature for teacher.
+        student_temp (float): Temperature for student.
         
     Returns:
         torch.Tensor: The clustering loss value.
@@ -31,33 +30,32 @@ def clustering_loss(student_logits: torch.Tensor,
     total_loss = 0
     loss = -torch.sum(teacher_out * F.log_softmax(student_out, dim=-1), dim=-1)
     total_loss = loss.mean()
+
     # Calculate entropy loss
     probs = F.softmax(student_logits / student_temp, dim=1)
     avg_probs = probs.mean(dim=0)
     entropy = -torch.sum(avg_probs * torch.log(avg_probs))
-    # entrop_regularization = entropy - torch.log(torch.tensor(float(len(avg_probs))))
+
     # Combine the losses
     clustering_loss = total_loss - weight * entropy
     
     return clustering_loss
 
 
-def unsupervised_contrastive_loss(features: torch.Tensor, 
-                                  temperature=1.0, 
+def unsupervised_contrastive_loss(features: torch.Tensor,  
                                   device='cuda') -> torch.Tensor:
     """
     Compute the unsupervised contrastive loss.
     
     Args:
         features (torch.Tensor): Input features tensor.
-        temperature (float): Temperature for scaling similarities.
         device (str): Device to move tensors to.
         
     Returns:
         torch.Tensor: The unsupervised contrastive loss value.
     """
     
-    # Pre-compute some constants
+    # Pre-compute batch_size
     batch_size = features.size(0) // 2
     total_batch_size = 2 * batch_size
     
@@ -79,11 +77,11 @@ def unsupervised_contrastive_loss(features: torch.Tensor,
     negatives = similarity_matrix[negative_mask].view(batch_size, -1)
     
     # Concatenate and scale logits
-    logits = torch.cat([positives, negatives], dim=1) / temperature
+    logits = torch.cat([positives, negatives], dim=1)
     
     # Compute the loss
     pseudo_labels = torch.zeros(logits.shape[0], dtype=torch.long).to(device)
-    loss = torch.nn.CrossEntropyLoss()(logits, pseudo_labels)
+    loss = nn.CrossEntropyLoss()(logits, pseudo_labels)
     
     return loss
 
@@ -122,14 +120,14 @@ def supervised_contrastive_loss(features: torch.Tensor,
     # Create the mask
     mask = torch.eq(labels, labels.T).float().to(device)
     
-    # Compute anchor dot contrast
+    # Compute similarity_matrix
     similarity_matrix = torch.matmul(features, features.T) / temperature
     
     # Center the logits to prevent overflow
     logits_max, _ = torch.max(similarity_matrix, dim=1, keepdim=True)
     logits = similarity_matrix - logits_max.detach()
     
-    # Construct mask for valid logits
+    # Construct mask
     eye_mask = torch.eye(batch_size, dtype=torch.bool).to(device)
     logits_mask = ~eye_mask
     mask = mask * logits_mask.float()
@@ -146,10 +144,59 @@ def supervised_contrastive_loss(features: torch.Tensor,
     return loss.mean()
 
 
+##------------------------------------------------Sharpen Clustring Loss----------------------------------------------##
+def teacher_distribution(teacher_logits: torch.Tensor) -> torch.Tensor:
+    """计算目标分布
+
+    Args:
+        teacher_logits: Input teacher logits.
+
+    Returns:
+        torch.Tensor: teacher distribution.
+    """
+    weight = teacher_logits**2 / teacher_logits.sum(0)
+    return (weight.t() / weight.sum(1)).t()  
+
+def sharpen_clustering_loss(student_logits: torch.Tensor, 
+                   teacher_logits: torch.Tensor, 
+                   weight: float, 
+                   teacher_temp=0.1, 
+                   student_temp=0.1) -> torch.Tensor:
+    """
+    Compute clustering loss based on student and teacher outputs.
+    
+    Args:
+        student_output (torch.Tensor): Student model's output.
+        teacher_output (torch.Tensor): Teacher model's output.
+        weight (float): Weight for the maximum entropy component.
+        teacher_temp (float): Temperature for teacher softmax.
+        student_temp (float): Temperature for student softmax/log-softmax.
+        
+    Returns:
+        torch.Tensor: The clustering loss value.
+    """
+
+    # Normalize outputs by temperature
+    student_out = F.softmax(student_logits / student_temp, dim=-1)
+    teacher_out = F.softmax(teacher_logits / teacher_temp, dim=-1).detach()
+
+    # distribution loss
+    teacher_distribution_ = teacher_distribution(teacher_out)
+    dist_loss = F.kl_div(student_out, teacher_distribution_)
+
+    # Calculate entropy loss
+    probs = F.softmax(student_logits / student_temp, dim=1)
+    avg_probs = probs.mean(dim=0)
+    entropy = -torch.sum(avg_probs * torch.log(avg_probs))
+
+    # Combine the losses
+    clustering_loss = dist_loss - weight * entropy
+    
+    return clustering_loss
 
 
 ##------------------------------------------------GCD contrastive loss------------------------------------------------##
-class SupConLoss(torch.nn.Module):
+class SupConLoss(nn.Module):
     """Supervised Contrastive Learning: https://arxiv.org/pdf/2004.11362.pdf.
     It also supports the unsupervised contrastive loss in SimCLR
     From: https://github.com/HobbitLong/SupContrast"""

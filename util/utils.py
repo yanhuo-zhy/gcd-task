@@ -4,7 +4,8 @@ import argparse
 import numpy as np
 import torch
 from datetime import datetime
-from torch.utils.tensorboard import SummaryWriter
+# from torch.utils.tensorboard import SummaryWriter
+from tensorboardX import SummaryWriter
 from scipy.optimize import linear_sum_assignment as linear_assignment
 import configparser
 
@@ -109,9 +110,9 @@ def init_experiment(args):
     # Logger Configuration
     logger = configure_logger(args.log_path)
     
-    # Argument Parsing and Modification
+    # Modify args based on dataset
     modify_args_based_on_dataset(args)
-    # modify_args_based_on_config(args)  # Uncomment if using
+    # modify_args_based_on_config(args)  
     
     # Device Configuration
     args.device = configure_device()
@@ -152,7 +153,7 @@ def calculate_clustering_accuracy(y_true, y_pred, old_class_mask):
     # Ensure predictions and ground truth have same size
     assert y_pred.size == y_true.size
     
-    # Determine the number of classes
+    # Compute confusion matrix
     num_labels = max(y_pred.max(), y_true.max()) + 1
     confusion_matrix = np.zeros((num_labels, num_labels), dtype=int)
     for i in range(y_pred.size):
