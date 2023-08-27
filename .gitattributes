@@ -1,1 +1,2 @@
 experiment/08-26-22-57-Experiment-2/models/model.pth filter=lfs diff=lfs merge=lfs -text
+experiment/08-26-22-57-Experiment-2/models/*.pth filter=lfs diff=lfs merge=lfs -text
