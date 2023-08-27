@@ -1,6 +1,7 @@
 # Replicating SimGCD
 
 # 项目结构
+'''
 gcd-task/
 |-- analysis/           # 使用notebook做代码测试
 |-- data/               # 数据集文件夹
@@ -12,6 +13,7 @@ gcd-task/
 |-- main.py             # 主训练和测试脚本
 |-- requirements.txt    # 项目依赖列表
 |-- README.md           # 项目描述和使用说明
+'''
 
 # 测试代码
 python main.py --evaluate True
@@ -20,6 +22,8 @@ python main.py --evaluate True
 python main.py --experiment_name "xxx"
 
 # 日志、模型文件
+'''
 log: experiment/08-26-22-57-Experiment-2/log/log.txt
 model: experiment/08-26-22-57-Experiment-2/models/model.pth
 tensorboard_log：experiment/08-26-22-57-Experiment-2/tensorboard_log
+'''

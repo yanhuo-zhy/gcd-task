@@ -47,14 +47,14 @@ def train(model, train_loader, test_loader, args, logger, writer):
 
             # Compute the clustering loss based on the student's and teacher's logits
             student_logits = feature_logits.chunk(2)[0]
-            # cluster_loss = clustering_loss(
-            #     student_logits, teacher_logits, args.entropy_regularization_weight
-            # )
-            # Replace clustering_loss with sharpen_clustering_loss
-            # teacher_logits = feature_logits.detach().chunk(2)[0]
-            cluster_loss = sharpen_clustering_loss(
+            cluster_loss = clustering_loss(
                 student_logits, teacher_logits, args.entropy_regularization_weight
             )
+            # Replace clustering_loss with sharpen_clustering_loss
+            # teacher_logits = feature_logits.detach().chunk(2)[0]
+            # cluster_loss = sharpen_clustering_loss(
+            #     student_logits, teacher_logits, args.entropy_regularization_weight
+            # )
 
             #-----------------------------------Mine Representation Learning Loss----------------------------------#
             # Calculate self-supervised contrastive loss for all the samples
